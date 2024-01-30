@@ -3,7 +3,9 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.time.LocalDate;
 import java.io.BufferedWriter;
+import java.io.BufferedReader;
 import java.io.FileWriter;
+import java.io.FileReader;
 import java.io.IOException;
 
 public class Reader {
@@ -67,7 +69,6 @@ public class Reader {
         LocalDate today = LocalDate.now();
         ArrayList<Book> overdueBooks = new ArrayList<>();
 
-        // First, identify overdue books
         for (Map.Entry<Book, LocalDate> entry : booksBorrowed.entrySet()) {
             LocalDate borrowedDate = entry.getValue();
             if (borrowedDate.plusDays(30).isBefore(today)) {
@@ -75,24 +76,20 @@ public class Reader {
             }
         }
 
-        // Then, return them
         for (Book book : overdueBooks) {
             returnBook(book);
         }
     }
 
-
     // Method to display books borrowed by the reader
     public void displayBooksBorrowed() {
-
-
-        if (totalBorrowedValue != 0){
-          System.out.println("Books borrowed by " + this.name + ":");
-          for (Book book : this.booksBorrowed.keySet()) {
-              System.out.println(book.getName() + " by " + book.getAuthor());
-          }
-        } else{
-          System.out.println(this.getName() +  " has no borrowed books");
+        if (!booksBorrowed.isEmpty()) {
+            System.out.println("Books borrowed by " + this.name + ":");
+            for (Book book : this.booksBorrowed.keySet()) {
+                System.out.println(book.getName() + " by " + book.getAuthor());
+            }
+        } else {
+            System.out.println(this.getName() + " has no borrowed books");
         }
     }
 
@@ -111,5 +108,27 @@ public class Reader {
         }
     }
 
-    
+    // Method to load reader's borrowed books from a file
+    public void loadReaderData(HashMap<String, Book> allBooks) {
+        String filename = "readers/" + this.id + ".txt";
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 2) {
+                    String isbn = parts[0];
+                    LocalDate borrowDate = LocalDate.parse(parts[1]);
+
+                    Book book = allBooks.get(isbn);
+                    if (book != null) {
+                        this.booksBorrowed.put(book, borrowDate);
+                        book.setIsBorrowed(this);
+                        this.totalBorrowedValue += book.getPrice();
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
